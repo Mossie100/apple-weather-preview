@@ -1,0 +1,23 @@
+{
+  "sourceChecksPassed": true,
+  "nativeSelectorsObservedInFirmware": [
+    "initWithOptions:",
+    "addEffectFrom:error:",
+    "initWithContentsOf:options:error:",
+    "setEffect:",
+    "setScene:",
+    "setRendersContinuously:",
+    "setPaused:",
+    "setIsPlaying:",
+    "setDevice:",
+    "setMetalLibraryURL:",
+    "setIsVFX2:",
+    "setSetupRenderer:",
+    "setAutomaticallyPrepareScene:"
+  ],
+  "bundleIdentifier": "com.calibratedgolf.weatherpreview",
+  "compiledOnMac": false,
+  "runOnIPhone": false,
+  "exactConditionPresetsConnected": false,
+  "sourceSHA256": "04b176064bd145183d2e55d8c9351db98729fb88c747bd06f2469709b804eb7a"
+}
