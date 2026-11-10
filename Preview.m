@@ -4,14 +4,30 @@
 #import <objc/runtime.h>
 #import <dlfcn.h>
 #include <string.h>
+#import "NativeSceneInitializers.h"
 
 static const char *Unqualified(const char *type) {
     while(*type && strchr("rnNoORV",*type))type++;
     return type;
 }
 
+// Calling initializers directly lets ARC consume the allocated receiver once.
+// NSInvocation cannot communicate init-family ownership to the calling code.
+static BOOL InitializerAvailable(Class cls, NSString *name, NSUInteger count, BOOL hasError) {
+    NSMethodSignature *signature=[cls instanceMethodSignatureForSelector:NSSelectorFromString(name)];
+    if(!signature || signature.numberOfArguments!=count+2 || Unqualified(signature.methodReturnType)[0]!='@')return NO;
+    for(NSUInteger index=0;index<count;index++) {
+        const char *type=Unqualified([signature getArgumentTypeAtIndex:index+2]);
+        if(hasError && index==count-1) {if(type[0]!='^' || type[1]!='@')return NO;}
+        else if(type[0]!='@')return NO;
+    }
+    return YES;
+}
+
 // Diagnostic only. Loads the installed Apple renderer, never the golf app.
 static id SendObject(id target, NSString *name, NSArray *arguments, NSError **error) {
+    // This helper is only for ordinary +0 object-returning methods.
+    NSCAssert(![name hasPrefix:@"init"],@"Initializers must use typed ARC calls");
     SEL selector=NSSelectorFromString(name);
     NSMethodSignature *signature=[target methodSignatureForSelector:selector];
     if(!signature || signature.numberOfArguments!=arguments.count+2 || Unqualified(signature.methodReturnType)[0]!='@') {
@@ -76,7 +92,7 @@ static void SetBool(id target, NSString *name, BOOL value) {
     UIStackView *layout=[[UIStackView alloc]initWithArrangedSubviews:@[title,subtitle,self.stage,buttons,self.report]];layout.axis=UILayoutConstraintAxisVertical;layout.spacing=8;layout.translatesAutoresizingMaskIntoConstraints=NO;
     [self.view addSubview:layout];UILayoutGuide *safe=self.view.safeAreaLayoutGuide;
     [NSLayoutConstraint activateConstraints:@[[layout.topAnchor constraintEqualToAnchor:safe.topAnchor constant:8],[layout.bottomAnchor constraintEqualToAnchor:safe.bottomAnchor constant:-8],[layout.leadingAnchor constraintEqualToAnchor:safe.leadingAnchor constant:12],[layout.trailingAnchor constraintEqualToAnchor:safe.trailingAnchor constant:-12],[self.stage.heightAnchor constraintGreaterThanOrEqualToConstant:120],[self.report.heightAnchor constraintEqualToAnchor:layout.heightAnchor multiplier:0.28],[buttons.heightAnchor constraintGreaterThanOrEqualToConstant:44]]];
-    [self log:[NSString stringWithFormat:@"Preview 1 • iOS %@ • %@",UIDevice.currentDevice.systemVersion,UIDevice.currentDevice.model]];
+    [self log:[NSString stringWithFormat:@"Preview 2 • iOS %@ • %@",UIDevice.currentDevice.systemVersion,UIDevice.currentDevice.model]];
     [self log:@"This test does not use OpenWeather, WeatherAPI or WeatherKit. No golf app files or settings are accessed."];
     self.observers=[NSMutableArray array];__weak typeof(self) weakSelf=self;
     for(NSNotificationName name in @[UIApplicationDidEnterBackgroundNotification,UIApplicationWillResignActiveNotification,UIApplicationDidBecomeActiveNotification,UIAccessibilityReduceMotionStatusDidChangeNotification]) {
@@ -121,11 +137,18 @@ static void SetBool(id target, NSString *name, BOOL value) {
         SetBool(options,@"setAutomaticallyPrepareScene:",YES);
         // Prefer the effect API used by WeatherVFXViewModel. Both selectors were
         // observed in the extracted native interface; validate signatures at runtime.
-        scene=SendObject([sceneClass alloc],@"initWithOptions:",@[options],&error);
+        if(InitializerAvailable(sceneClass,@"initWithOptions:",1,NO)) {
+            [self log:@"Creating native scene with typed initializer."];
+            scene=CGCreateSceneWithOptions(sceneClass,options);
+        }
         if(scene)effect=SendObject(scene,@"addEffectFrom:error:",@[project,NSNull.null],&error);
         if(!effect) {
             [self log:[NSString stringWithFormat:@"Effect loader result: %@",error.localizedDescription?:@"no effect returned"]];
-            scene=SendObject([sceneClass alloc],@"initWithContentsOf:options:error:",@[project,options,NSNull.null],&error);
+            if(InitializerAvailable(sceneClass,@"initWithContentsOf:options:error:",3,YES)) {
+                [self log:@"Trying native scene URL initializer."];
+                error=nil;
+                scene=CGCreateSceneAtURL(sceneClass,project,options,&error);
+            }
         }
         if(!scene){[self log:[NSString stringWithFormat:@"Scene load failed: %@",error.localizedDescription?:@"no scene returned"]];return;}
         UIView *native=[[viewClass alloc]initWithFrame:self.stage.bounds];

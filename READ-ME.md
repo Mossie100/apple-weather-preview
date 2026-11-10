@@ -1,4 +1,4 @@
-# Apple Weather native preview 1
+# Apple Weather native preview 2
 
 This is a separate diagnostic iPhone app, not an update to Calibrated Golf and
 not a completed reproduction of Apple's weather backgrounds.
@@ -39,3 +39,5 @@ iOS 27.2.1; this preview deliberately loads the phone's installed iOS version.
 Next stage after a successful engine test: recover/invoke Apple's per-condition
 configuration pipeline, then compare every day/night condition against the
 phone before integrating anything into the golf app.
+
+Build 2 fixes the preview's ARC receiver ownership when a native initializer returns nil. The Codemagic build now runs a native macOS ownership regression test before compiling the iPhone app. Physical iPhone scene loading remains unverified.
