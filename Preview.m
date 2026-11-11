@@ -116,49 +116,24 @@ static void SetBool(id target, NSString *name, BOOL value) {
         NSString *path=[NSString stringWithFormat:@"/System/Library/PrivateFrameworks/%@.framework/%@",name,name];
         if(!dlopen(path.UTF8String,RTLD_NOW|RTLD_GLOBAL)) {const char *why=dlerror();[self log:[NSString stringWithFormat:@"Cannot load %@: %s",name,why?:"unknown error"]];return;}
     }
-    Class viewClass=NSClassFromString(@"VFXView"),sceneClass=NSClassFromString(@"VFX.VFXScene");
-    if(!sceneClass)sceneClass=NSClassFromString(@"_TtC3VFX8VFXScene");
-    if(!viewClass || ![viewClass isSubclassOfClass:UIView.class] || !sceneClass){[self log:@"Required native VFX classes are unavailable on this iOS build."];return;}
+    Class viewClass=NSClassFromString(@"VFXView"),worldClass=NSClassFromString(@"VFXWorld");
+    if(!viewClass || ![viewClass isSubclassOfClass:UIView.class] || !worldClass){[self log:@"Required native VFX classes are unavailable on this iOS build."];return;}
     NSString *framework=@"/System/Library/PrivateFrameworks/WeatherUI.framework";
     NSBundle *bundle=[NSBundle bundleWithPath:framework];[self log:[NSString stringWithFormat:@"WeatherUI build: %@",[bundle objectForInfoDictionaryKey:@"CFBundleVersion"]?:@"unknown"]];
     NSURL *project=[NSURL fileURLWithPath:[framework stringByAppendingPathComponent:@"VFX/WeatherV136_Default_Background.vfx"] isDirectory:YES];
     if(![NSFileManager.defaultManager fileExistsAtPath:project.path]){[self log:@"The expected native scene is not present in this iOS build. No substitute scene was loaded."];return;}
-    NSError *error=nil;id scene=nil,effect=nil;
+    NSError *error=nil;
     @try {
-        Class optionsClass=NSClassFromString(@"VFXSceneLoadOptions");
-        if(!optionsClass){[self log:@"The installed engine does not expose its native scene options."];return;}
-        id options=[optionsClass new];id<MTLDevice> device=MTLCreateSystemDefaultDevice();
-        if(!device){[self log:@"No Metal device is available."];return;}
-        SetObject(options,@"setDevice:",device);
-        NSURL *library=[bundle URLForResource:@"default" withExtension:@"metallib"];
-        if(library)SetObject(options,@"setMetalLibraryURL:",library);
-        SetBool(options,@"setIsVFX2:",YES);
-        SetBool(options,@"setSetupRenderer:",YES);
-        SetBool(options,@"setAutomaticallyPrepareScene:",YES);
-        // Prefer the effect API used by WeatherVFXViewModel. Both selectors were
-        // observed in the extracted native interface; validate signatures at runtime.
-        if(InitializerAvailable(sceneClass,@"initWithOptions:",1,NO)) {
-            [self log:@"Creating native scene with typed initializer."];
-            scene=CGCreateSceneWithOptions(sceneClass,options);
-        }
-        if(scene)effect=SendObject(scene,@"addEffectFrom:error:",@[project,NSNull.null],&error);
-        if(!effect) {
-            [self log:[NSString stringWithFormat:@"Effect loader result: %@",error.localizedDescription?:@"no effect returned"]];
-            if(InitializerAvailable(sceneClass,@"initWithContentsOf:options:error:",3,YES)) {
-                [self log:@"Trying native scene URL initializer."];
-                error=nil;
-                scene=CGCreateSceneAtURL(sceneClass,project,options,&error);
-            }
-        }
-        if(!scene){[self log:[NSString stringWithFormat:@"Scene load failed: %@",error.localizedDescription?:@"no scene returned"]];return;}
+        [self log:@"Loading VFX2 project with VFXWorld API."];
+        id world=SendObject(worldClass,@"worldWithURL:options:error:",@[project,@{},NSNull.null],&error);
+        if(!world){[self log:[NSString stringWithFormat:@"World load failed: %@",error.localizedDescription?:@"no world returned"]];return;}
         UIView *native=[[viewClass alloc]initWithFrame:self.stage.bounds];
         native.autoresizingMask=UIViewAutoresizingFlexibleWidth|UIViewAutoresizingFlexibleHeight;
-        BOOL attached=effect?SetObject(native,@"setEffect:",effect):SetObject(native,@"setScene:",scene);
-        if(!attached){[self log:@"Native renderer does not expose the expected scene/effect setter."];return;}
-        self.nativeView=native;self.nativeScene=scene;self.nativeEffect=effect;[self.stage addSubview:native];
+        if(!SetObject(native,@"setWorld:",world)){[self log:@"Native renderer does not expose setWorld:."];return;}
+        self.nativeView=native;self.nativeScene=world;self.nativeEffect=nil;[self.stage addSubview:native];
         [self updatePlayback:UIApplication.sharedApplication.applicationState==UIApplicationStateActive];
-        [self log:[NSString stringWithFormat:@"Native %@ attached at %.0f Ã— %.0f points.",effect?@"effect":@"scene",self.stage.bounds.size.width,self.stage.bounds.size.height]];
-        [self log:@"Appearance is UNVERIFIED. Appleâ€™s per-condition configuration factory is not yet connected. A black/default scene is a diagnostic result, not a successful animation match."];
+        [self log:[NSString stringWithFormat:@"Native world attached at %.0f × %.0f points.",self.stage.bounds.size.width,self.stage.bounds.size.height]];
+        [self log:@"Appearance is UNVERIFIED. Apple’s per-condition configuration factory is not yet connected. A black/default scene is a diagnostic result, not a successful animation match."];
         if(UIAccessibilityIsReduceMotionEnabled())[self log:@"Reduce Motion is enabled; continuous playback remains paused."];
     } @catch(NSException *exception) {[self log:[NSString stringWithFormat:@"Native load exception: %@",exception.reason?:exception.name]];}
 }

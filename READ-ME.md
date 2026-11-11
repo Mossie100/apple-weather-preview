@@ -1,4 +1,4 @@
-# Apple Weather native preview 2
+# Apple Weather native preview 3
 
 This is a separate diagnostic iPhone app, not an update to Calibrated Golf and
 not a completed reproduction of Apple's weather backgrounds.
@@ -41,3 +41,5 @@ configuration pipeline, then compare every day/night condition against the
 phone before integrating anything into the golf app.
 
 Build 2 fixes the preview's ARC receiver ownership when a native initializer returns nil. The Codemagic build now runs a native macOS ownership regression test before compiling the iPhone app. Physical iPhone scene loading remains unverified.
+
+Build 3 makes one targeted API change: VFXWorld.worldWithURL:options:error: and VFXView.setWorld:, as requested by the installed engine error. No VFXScene loading fallback is used. One build and one physical-phone test; no broader research.
