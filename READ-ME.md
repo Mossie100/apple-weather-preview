@@ -1,45 +1,39 @@
-# Apple Weather native preview 3
+# Apple Weather comprehensive preview 4
 
-This is a separate diagnostic iPhone app, not an update to Calibrated Golf and
-not a completed reproduction of Apple's weather backgrounds.
+iPhone IPA only. Separate test app; no Calibrated Golf or Android changes.
+Build once in the existing apple-weather-preview repository. Workflow:
+Apple Weather comprehensive preview 4. Sign/install the unsigned IPA as before.
 
-Scope: Apple iPhone IPA only. Android and the shared web application are not
-modified. Any later integration must remain in the iOS native layer.
+Tap RUN ALL CHECKS once. The app automatically performs twelve checks:
+two original projects (background/collision), six loading routes per project:
+direct binary URL with default options; URL with exported asset/Metal options;
+binary data in memory; lower-level world loader with binary/project URLs;
+and VFXWorldLoader with the binary URL.
+Missing/unreadable resources or unsupported method layouts are reported and
+skipped rather than called. The known missing world.plist folder route is logged,
+not repeated. Option names are resolved from Apple's actual exported constants.
 
-Its purpose is to test whether the installed iOS 27.2 WeatherUI/VFX engine can
-load its original scene in an ordinary sideloaded app. It uses the phone's own
-installed frameworks and assets. No large Apple files, API keys, npm packages or
-Calibrated Golf files are included.
+The report records hardware/iOS/build/source identity, resources and binary
+headers, method ABI and exposed preset factories, complete NSError information,
+world-loading outcomes, camera/view/Metal state, native snapshot pixel hashes
+and pixel variation, and renderer statistics where available.
+Up to four PNG snapshots are retained (8 MB each maximum).
 
-The actual weather-condition presets are NOT connected. It may show a default
-or black scene, a load error, or encounter an unavailable private interface.
-None of those outcomes proves a visual match. The source checks exposed method
-signatures before invoking them, logs errors, respects Reduce Motion and pauses
-continuous rendering in the background. Native failures can still terminate the
-preview; physical-device testing is required.
+Results/checkpoints are saved before native calls. If the app closes, reopen
+it and tap RESUME CHECKS: it skips the interrupted attempt and continues.
+STOP stops between calls; an active native call cannot safely be cancelled.
+No attempts overlap. Long calls run on a serial worker; UIKit stays on main.
+Background/Reduce Motion pauses continuous rendering.
 
-Build in a NEW Codemagic repository/application using the supplied workflow.
-Do not replace, disable or upload over the Calibrated Golf build repository.
-The workflow compiles directly with Xcode and produces an unsigned IPA.
-Sign/install it using the existing Sideloadly method.
+When COMPLETE appears, use SHARE REPORT to send/save the text and snapshots.
+COPY REPORT provides the full text if sharing is inconvenient.
+Exact Apple per-condition presets are still NOT connected or verified.
+A loaded world, nonuniform image or changing pixels is diagnostic evidence,
+not proof that all iPhone Weather animations have been reproduced.
 
-The app is named **CG Weather Preview** and uses the distinct bundle identifier
-`com.calibratedgolf.weatherpreview`; it is intended to coexist with Calibrated
-Golf. Confirm the signing tool preserves that separate identifier.
-
-On the iPhone, tap **Load native scene**, then **Copy test report**. Inspect and
-record the visible result. If it crashes, retain the iPhone crash report.
-Required evidence before integration: native scene/effect loading result,
-displayed output, errors or crash logs, exact iOS build and device model.
-
-Prepared on Windows. Source/plist/workflow checks can run here; compilation and
-Apple VFX playback have NOT run here. The earlier framework was extracted from
-iOS 27.2.1; this preview deliberately loads the phone's installed iOS version.
-
-Next stage after a successful engine test: recover/invoke Apple's per-condition
-configuration pipeline, then compare every day/night condition against the
-phone before integrating anything into the golf app.
-
-Build 2 fixes the preview's ARC receiver ownership when a native initializer returns nil. The Codemagic build now runs a native macOS ownership regression test before compiling the iPhone app. Physical iPhone scene loading remains unverified.
-
-Build 3 makes one targeted API change: VFXWorld.worldWithURL:options:error: and VFXView.setWorld:, as requested by the installed engine error. No VFXScene loading fallback is used. One build and one physical-phone test; no broader research.
+The Mac build runs native regression tests for initializer ownership, object
+returns, NSError pointers, BOOL results, mutable info, setters and ABI guards
+before compiling the iPhone app. Debug symbols and a build proof are exported.
+Prepared and source-checked on Windows. Native compilation and iPhone
+execution remain unverified until the user's Codemagic/phone run.
+No large Apple files, credentials or dependencies are included.

@@ -1,15 +1,20 @@
 {
+  "previewBuild": 4,
   "sourceChecksPassed": true,
-  "nativeSelectorsObservedInFirmware": [
+  "expectedCases": 12,
+  "loadingSelectorsObservedInFirmware": [
     "worldWithURL:options:error:",
+    "worldWithData:options:error:",
+    "loadCoreEntityManagerFromURL:options:infoOut:error:",
+    "loadWorldFromURL:options:statusHandler:error:",
     "setWorld:",
-    "setRendersContinuously:",
-    "setPaused:",
-    "setIsPlaying:"
+    "snapshot",
+    "statistics",
+    "defaultPointOfView"
   ],
-  "bundleIdentifier": "com.calibratedgolf.weatherpreview",
+  "nativeMacTestsConfigured": true,
   "compiledOnMac": false,
   "runOnIPhone": false,
   "exactConditionPresetsConnected": false,
-  "sourceSHA256": "8642c808fbd8359dec995dc14e8e9ddca60dfd721e560a34e67e3a0aa757e94d"
+  "sourceBundleSHA256": "221056f970d90cec962aa89e6c08cc61571c2f443d13b4c234d8cf74cd0290ed"
 }
